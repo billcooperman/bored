@@ -4,6 +4,26 @@
         <link rel="stylesheet" type="text/css" href="index.css">
     </head>
     <body>
+        <div style="position: sticky; top: 0;">
+            line width is <emph id="line-width">1</emph>. change line width:
+            <button onclick='update_line_width(1);'>1</button>
+            <button onclick='update_line_width(2);'>2</button>
+            <button onclick='update_line_width(3);'>3</button>
+            <button onclick='update_line_width(4);'>4</button>
+            <button onclick='update_line_width(5);'>5</button>
+            <button onclick='update_line_width(15);'>15</button>
+            <button onclick='update_line_width(25);'>25</button>
+            <br/>
+            color <emph id="color">&nbsp;&nbsp;</emph>. change color:
+            <button onclick="update_color('black');">black</button>
+            <button onclick="update_color('white');">white</button>
+            <button onclick="update_color('blue');">blue</button>
+            <button onclick="update_color('green');">green</button>
+            <button onclick="update_color('red');">red</button>
+            <button onclick="update_color('orange');">orange</button>
+            <button onclick="update_color('purple');">purple</button>
+            <button onclick="update_color('yellow');">yellow</button>
+        </div>
         <div id='main-board-div'></div>
     </body>
     <script src="boards.js"></script>

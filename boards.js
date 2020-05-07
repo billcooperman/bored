@@ -1,3 +1,14 @@
+function update_line_width(w) {
+    line_width = w;
+    document.getElementById('line-width').innerHTML = ''+w;
+}
+function update_color(c) {
+    color = c;
+    document.getElementById('color').innerHTML = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+    document.getElementById('color').style.backgroundColor = c;
+}
+update_line_width(2);
+update_color('black');
 var board_div = document.getElementById('main-board-div');
 var boards = [];
 function add_board() {
@@ -5,15 +16,13 @@ function add_board() {
     new_board.width = document.body.clientWidth;
     new_board.height = new_board.width * size_ratio;
     var spacer = document.createElement('div');
-    var board_name = document.createElement('p');
-    board_name.innerHTML = "board #" + boards.length;
-    spacer.appendChild(board_name);
-    board_div.appendChild(spacer);
+    spacer.style.backgroundColor = '#99FFFF';
+    spacer.innerHTML = "board #" + boards.length + " ^";
     board_div.appendChild(new_board);
+    board_div.appendChild(spacer);
     boards.push(new_board);
     return boards.length-1;
 }
-var cur_board;
 var resize_timeout = window.setTimeout(function() {}, 10);
 function resize_boards(e) {
     for (var i=0; i<boards.length; i++) {
@@ -38,16 +47,21 @@ function redraw_everything(only = -1) {
     for (var i=0; i<draw_events.length; i++) {
         if (only !== -1 && draw_events[i].board != only) continue;
         var context = boards[draw_events[i].board].getContext('2d');
-        context.fillStyle = draw_events[i].color;
-        for (var j=0; j<draw_events[i].rects.length;  j++) {
-            var R = draw_events[i].rects[j];
-            context.fillRect(R[0]/size_ratio, R[1]/size_ratio, R[2]/size_ratio, R[3]/size_ratio);
+        var W = boards[draw_events[i].board].width;
+        context.strokeStyle = draw_events[i].color;
+        context.lineWidth = draw_events[i].lw*W;
+        context.beginPath();
+        context.moveTo(draw_events[i].points[0]*W, draw_events[i].points[1]*W);
+        for (var j=1; j<draw_events[i].points.length;  j++) {
+            var R = draw_events[i].points[j];
+            context.lineTo(R[0]*W, R[1]*W);
         }
+        context.stroke();
     }
 }
 
 var size_ratio = 9/16;  // height / width
-var color = 'black', line_width = 1;
+var color, line_width;
 var cur_x = 0, cur_y = 0;
 var drawing = false;
 var draw_events = [];
@@ -78,12 +92,14 @@ function scroll_hit_bottom(e) {
         var new_board = add_board();
 
         function end_draw_event(e) {
+            draw(e);
+            boards[new_board].getContext('2d').stroke();
             drawing = false;
-            redo_events = [];
             if (cur_draw_event.length > 0) {
                 draw_events.push({'board': new_board,
                                   'color': color,
-                                  'rects': cur_draw_event});
+                                  'points': cur_draw_event,
+                                  'lw': line_width/boards[new_board].width});
                 cur_draw_event = [];
             }
         }
@@ -91,39 +107,31 @@ function scroll_hit_bottom(e) {
         boards[new_board].addEventListener('mouseout',  end_draw_event);
         boards[new_board].addEventListener('mousedown', function(e) {
             drawing = true;
-            cur_x = e.offsetX * size_ratio;
-            cur_y = e.offsetY * size_ratio;
-            draw(e);
+            cur_x = e.offsetX / boards[new_board].width;
+            cur_y = e.offsetY / boards[new_board].width;
+            var lw = line_width / boards[new_board].width;
+            cur_draw_event.push([cur_x, cur_y]);
+            var context = boards[new_board].getContext('2d');
+            context.beginPath();
+            context.moveTo(e.offsetX, e.offsetY);
+            context.strokeStyle = color;
+            context.lineWidth = lw*boards[new_board].width;
         });
         function draw(e) {
             if (drawing) {
                 var context = boards[new_board].getContext('2d');
-                context.fillStyle = color;
-                var new_x = e.offsetX*size_ratio;
-                var new_y = e.offsetY*size_ratio;
-                var lw = line_width*size_ratio;
-                var distance = Math.abs(cur_x-new_x) + Math.abs(cur_y-new_y);
-                var x_weight = (new_x-cur_x)/distance;
-                var y_weight = (new_y-cur_y)/distance;
-                var backup = 0;
-                while (distance > lw) {
-                    backup++;
-                    if (backup == 1000) {
-                        console.log('drawing error');
-                        break;
-                    }
-                    context.fillRect(cur_x/size_ratio, cur_y/size_ratio, line_width, line_width);
-                    cur_draw_event.push([cur_x, cur_y, lw, lw]);
-                    cur_x += lw*x_weight;
-                    cur_y += lw*y_weight;
-                    distance = Math.abs(cur_x-new_x) + Math.abs(cur_y-new_y);
-                }
-                context.fillRect(cur_x/size_ratio, cur_y/size_ratio, line_width, line_width);
-                cur_draw_event.push([cur_x, cur_y, lw, lw]);
-                cur_x = new_x;
-                cur_y = new_y;
+                var W = boards[new_board].width;
+                context.lineTo(e.offsetX, e.offsetY);
+                context.stroke();
+                cur_draw_event.push([cur_x, cur_y]);
+                cur_x = e.offsetX/boards[new_board].width;
+                cur_y = e.offsetY/boards[new_board].width;
             }
         }
         boards[new_board].addEventListener('mousemove', draw);
     }
 }
+
+scroll_hit_bottom();
+scroll_hit_bottom();
+scroll_hit_bottom();
