@@ -28,23 +28,27 @@ function resize_boards(e) {
     for (var i=0; i<boards.length; i++) {
         boards[i].width = document.body.clientWidth;
         boards[i].height = boards[i].width * size_ratio;
+        boards[i].getContext('2d').clearRect(0, 0, boards[i].width, boards[i].height);
     }
     // only try to redraw if we haven't resized in 100ms
     window.clearTimeout(resize_timeout);
     resize_timeout = window.setTimeout(redraw_everything, 100);
 }
-document.addEventListener('DOMContentLoaded', scroll_hit_bottom);
 window.addEventListener('resize', resize_boards);
 
-function redraw_everything(only = -1) {
+function redraw_everything(only = -1, last = 0, undo = false) {
     console.log('redrawing');
+    console.log("last " + last);
+    console.log("undo " + undo);
     console.log(draw_events);
-    for (var i=0; i<boards.length; i++) {
-        if (only !== -1 && i != only) continue;
-        var context = boards[i].getContext('2d');
-        context.clearRect(0, 0, boards[i].width, boards[i].height);
+    if (undo) {
+        console.log('undoing');
+        var context = boards[only].getContext('2d');
+        context.clearRect(0, 0, boards[only].width, boards[only].height);
     }
-    for (var i=0; i<draw_events.length; i++) {
+    for (var i=last; i<draw_events.length; i++) {
+        console.log('in draw_events loop');
+        console.log('draw_events[' + i + '].board: ' + draw_events[i].board);
         if (only !== -1 && draw_events[i].board != only) continue;
         var context = boards[draw_events[i].board].getContext('2d');
         var W = boards[draw_events[i].board].width;
@@ -68,16 +72,17 @@ var draw_events = [];
 var redo_events = [];
 var cur_draw_event = []
 
+// TODO: send these actions to the server
 document.addEventListener('keydown', function(e) {
     if (e.code == 'KeyU') { // undo
         if (draw_events.length > 0) {
             redo_events.push(draw_events.pop());
-            redraw_everything(redo_events[redo_events.length-1].board);
+            redraw_everything(redo_events[redo_events.length-1].board, 0, true);
         }
     } else if (e.code == 'KeyR') { // redo
         if (redo_events.length > 0) {
             draw_events.push(redo_events.pop());
-            redraw_everything(draw_events[draw_events.length-1].board);
+            redraw_everything(draw_events[draw_events.length-1].board, draw_events.length-1, false);
         }
     }
 });
@@ -85,22 +90,24 @@ document.addEventListener('keydown', function(e) {
 window.addEventListener('scroll', scroll_hit_bottom);
 function scroll_hit_bottom(e) {
     // if you're scrolled to the bottom of the page, automatically add another board
-    console.log(window.innerHeight);
-    console.log(window.scrollTop);
-    console.log(document.body.offsetHeight);
     if (window.innerHeight + window.pageYOffset >= document.body.offsetHeight) {
+        console.log('SOMETHING');
         var new_board = add_board();
+        console.log('adding board ' + new_board);
 
         function end_draw_event(e) {
-            draw(e);
-            boards[new_board].getContext('2d').stroke();
-            drawing = false;
-            if (cur_draw_event.length > 0) {
-                draw_events.push({'board': new_board,
-                                  'color': color,
-                                  'points': cur_draw_event,
-                                  'lw': line_width/boards[new_board].width});
-                cur_draw_event = [];
+            // TODO: send this to server
+            if (drawing) {
+                draw(e);
+                boards[new_board].getContext('2d').stroke();
+                drawing = false;
+                if (cur_draw_event.length > 0) {
+                    draw_events.push({'board': new_board,
+                                      'color': color,
+                                      'points': cur_draw_event,
+                                      'lw': line_width/boards[new_board].width});
+                    cur_draw_event = [];
+                }
             }
         }
         boards[new_board].addEventListener('mouseup', end_draw_event);
@@ -135,3 +142,26 @@ function scroll_hit_bottom(e) {
 scroll_hit_bottom();
 scroll_hit_bottom();
 scroll_hit_bottom();
+
+
+function getDeltas() {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() {
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+            var response = xmlHttp.responseText;
+            // TODO: handle deltas here
+        }
+    }
+    xmlHttp.open( "GET", './cgi=bin/give_deltas.py', true); // true for asynchronous
+    xmlHttp.send(null);
+}
+
+function putAction(action) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "POST", './cgi=bin/take_action.py', true); // true for asynchronous
+    http.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    xmlHttp.send(action);;
+}
+
+
+//setInterval(getDeltas, 1000); // ask for updates every second
