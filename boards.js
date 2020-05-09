@@ -30,6 +30,7 @@ id_request.onreadystatechange = function() {
         var resize_timeout = window.setTimeout(function() {}, 10);
         var has_lock = false;
         var lock_button = document.getElementById('lock-button');
+        var lock_span = document.getElementById('lock-span');
 
         function add_board() {
             var new_board = document.createElement('canvas');
@@ -199,6 +200,9 @@ id_request.onreadystatechange = function() {
                     if (xmlHttp.responseText.trim().startsWith('OK')) {
                         has_lock = true;
                         lock_button.innerHTML = "release";
+                        lock_span.innerHTML = "currently editing &nbsp; &nbsp;";
+                    } else {
+                        lock_span.innerHTML = "someone else is editing now &nbsp; &nbsp;";
                     }
                 }
             };
@@ -213,6 +217,7 @@ id_request.onreadystatechange = function() {
                     if (xmlHttp.responseText.trim().startsWith('OK')) {
                         has_lock = false;
                         lock_button.innerHTML = "edit";
+                        lock_span.innerHTML = "lock released &nbsp; &nbsp;";
                     }
                 }
             };
@@ -225,6 +230,12 @@ id_request.onreadystatechange = function() {
                 release_lock();
             } else {
                 get_lock();
+            }
+        });
+        window.addEventListener("beforeunload", function(e){
+            if (has_lock) {
+                release_lock();
+                e.returnValue = 'releasing the lock...';
             }
         });
 
