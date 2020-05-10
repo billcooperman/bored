@@ -1,3 +1,6 @@
+if [ ! -d "./data" ]; then
+    mkdir ./data
+fi
 mkdir ./data/$1
 touch ./data/$1/hist.txt
 touch ./data/$1/ids.txt
