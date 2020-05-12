@@ -78,7 +78,6 @@ id_request.onreadystatechange = function() {
         }
 
 
-        // TODO: send these actions to the server
         document.addEventListener('keydown', function(e) {
             if (has_lock) {
                 if (e.code == 'KeyU') { // undo
@@ -111,7 +110,6 @@ id_request.onreadystatechange = function() {
                 var new_board = add_board();
 
                 function end_draw_event(e) {
-                    // TODO: send this to server
                     if (e.pointerType !== "touch" && drawing && has_lock) {
                         draw(e);
                         boards[new_board].getContext('2d').stroke();
@@ -145,11 +143,13 @@ id_request.onreadystatechange = function() {
                     if (e.pointerType != "touch" && drawing && has_lock) {
                         var context = boards[new_board].getContext('2d');
                         var W = boards[new_board].width;
+                        context.beginPath();
+                        context.moveTo(cur_x*W, cur_y*W);
                         context.lineTo(e.offsetX, e.offsetY);
                         context.stroke();
                         cur_draw_event.push([cur_x, cur_y]);
-                        cur_x = e.offsetX/boards[new_board].width;
-                        cur_y = e.offsetY/boards[new_board].width;
+                        cur_x = e.offsetX/W;
+                        cur_y = e.offsetY/W;
                     }
                 }
                 boards[new_board].addEventListener('pointermove', draw);
